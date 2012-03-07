@@ -1,8 +1,5 @@
-/*
-Package functional implements a functional programming library including
-a lazy list implementation and some of the most usual functions.
-*/
-
+// Package functional implements a functional programming library including
+// a lazy list implementation and some of the most usual functions.
 package functional
 
 import (
@@ -318,7 +315,7 @@ func ReduceN(f func(I, ...I) I, acc I, thunks ...*Thunk) I {
 	return ReduceN(f, f(acc, heads...), tails...)
 }
 
-/// Applies a function to each element of a list, returning the
+// Applies a function to each element of a list, returning the
 // accumulated value. The function must take the so far accumulated value
 // as its first argument and the next element of the list as its second
 // one. You pass that initial value as Reduce's second argument.
