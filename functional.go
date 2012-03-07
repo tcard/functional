@@ -3,7 +3,6 @@
 package functional
 
 import (
-	"errors"
 	"fmt"
 	"reflect"
 )
@@ -210,12 +209,12 @@ func (thunk *Thunk) Length() (ret int) {
 
 // Retrieves the element at the n-th position on the list. If there is
 // no such element, err is set.
-func (thunk *Thunk) At(n uint) (ret I, err error) {
+func (thunk *Thunk) At(n uint) (ret I) {
 	var pair *Pair
 	for i := uint(0); i <= n; i++ {
 		pair = force(thunk, nil)
 		if pair == nil {
-			err = errors.New("Index out of list.")
+			panic("Index out of list.")
 			return
 		}
 		thunk = pair.tail

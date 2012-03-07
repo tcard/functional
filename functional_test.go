@@ -76,12 +76,9 @@ func TestAt(t *testing.T) {
 	l1 := List(1, 2, 3)
 	s := l1.ToSlice()
 	for k, v := range s {
-		if w, _ := l1.At(uint(k)); v != w {
+		if w := l1.At(uint(k)); v != w {
 			t.Errorf("At(%v, %v) != s[%v]", l1, k, k)
 		}
-	}
-	if v, ok := l1.At(3); ok == nil {
-		t.Errorf("At(%v, %v) -> %v, %v", l1, 3, v, ok)
 	}
 }
 
@@ -373,9 +370,10 @@ func BenchmarkMapLoop(b *testing.B) {
 	}
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
-		for elem := range s {
-			elem = double(elem)
+		for k, v := range s {
+			s[k] = double(v)
 		}
+		_ = s[0]
 	}
 }
 
@@ -388,7 +386,7 @@ func BenchmarkMapList(b *testing.B) {
 	}
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
-		l = l.Map(double)
+		_ = l.Map(double).At(0)
 	}
 }
 
@@ -420,6 +418,6 @@ func BenchmarkUsualFibo(b *testing.B) {
 
 func BenchmarkFiboStream(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		_, _ = fibo.At(10)
+		_ = fibo.At(10)
 	}
 }
