@@ -334,3 +334,92 @@ func TestFibo(t *testing.T) {
 		t.Error()
 	}
 }
+
+func usualFibo(n int) int {
+	if n <= 1 {
+		return 1
+	}
+	return usualFibo(n-1) + usualFibo(n-2)
+}
+
+func BenchmarkIterSlice(b *testing.B) {
+	b.StopTimer()
+	s := []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+		11, 12, 13, 14, 15, 16, 17, 18, 19, 20}
+	b.StartTimer()
+	for i := 0; i < b.N; i++ {
+		for _ = range s {
+		}
+	}
+}
+
+func BenchmarkIterList(b *testing.B) {
+	b.StopTimer()
+	l := L(1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+		11, 12, 13, 14, 15, 16, 17, 18, 19, 20)
+	b.StartTimer()
+	for i := 0; i < b.N; i++ {
+		for _ = range l.Iter() {
+		}
+	}
+}
+
+func BenchmarkMapLoop(b *testing.B) {
+	b.StopTimer()
+	s := []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+		11, 12, 13, 14, 15, 16, 17, 18, 19, 20}
+	double := func(n int) int {
+		return n * 2
+	}
+	b.StartTimer()
+	for i := 0; i < b.N; i++ {
+		for elem := range s {
+			elem = double(elem)
+		}
+	}
+}
+
+func BenchmarkMapList(b *testing.B) {
+	b.StopTimer()
+	l := L(1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+		11, 12, 13, 14, 15, 16, 17, 18, 19, 20)
+	double := func(n I) I {
+		return n.(int) * 2
+	}
+	b.StartTimer()
+	for i := 0; i < b.N; i++ {
+		l = l.Map(double)
+	}
+}
+
+func BenchmarkAppendSlices(b *testing.B) {
+	b.StopTimer()
+	s := []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+		11, 12, 13, 14, 15, 16, 17, 18, 19, 20}
+	b.StartTimer()
+	for i := 0; i < b.N; i++ {
+		_ = append(s, s...)
+	}
+}
+
+func BenchmarkAppendLists(b *testing.B) {
+	b.StopTimer()
+	l := L(1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+		11, 12, 13, 14, 15, 16, 17, 18, 19, 20)
+	b.StartTimer()
+	for i := 0; i < b.N; i++ {
+		_ = l.Append(l)
+	}
+}
+
+func BenchmarkUsualFibo(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		usualFibo(10)
+	}
+}
+
+func BenchmarkFiboStream(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		_, _ = fibo.At(10)
+	}
+}
