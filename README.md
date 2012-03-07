@@ -1,13 +1,15 @@
-# functional.go
+# functional
 
 A functional programming library including
 a lazy list implementation and some of the most usual functions.
 
-	import FP "github.com/tcard/functional.go"
+	import FP "github.com/tcard/functional"
 	
 ## Installing
 
-	go get github.com/tcard/functional.go
+	go get github.com/tcard/functional
+
+Tested on Go version weekly.2012-03-04.
 	
 ## Examples
 

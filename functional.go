@@ -316,7 +316,7 @@ func ReduceN(f func(I, ...I) I, acc I, thunks ...*Thunk) I {
 }
 
 // Applies a function to each element of a list, returning the
-// accumulated value. The function must take the so far accumulated value
+// accumulated value. The function must take the so far accumulated vºalue
 // as its first argument and the next element of the list as its second
 // one. You pass that initial value as Reduce's second argument.
 // It stops reducing when any of the lists ends.
