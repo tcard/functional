@@ -36,7 +36,7 @@ For showing some "real" utility, this would retrieve the third page of a blog:
 	var posts *FP.Thunk	= ...
 	page := 3
 	postsPerPage := 10
-	_ = posts.Drop((page - 1) * postsPerPage).Take(postsPerPage).Map(func (post I) I) {
+	_ = posts.Drop((page - 1) * postsPerPage).Take(postsPerPage).Map(func (post FP.I) FP.I) {
 		blog.showPost(post.(Post))
 		return post
 	})
