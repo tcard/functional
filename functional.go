@@ -19,25 +19,68 @@ type Pair struct {
 	tail *Thunk
 }
 
+type thunkFunc func(I) *Pair
+
 // A Thunk is a delayed Pair. It is a function that, when called, returns 
 // or generates, the underlying pair. It takes an argument which may
 // be used as a previous value for generating the next Pair, but usually
 // it won't take effect. In practice, Thunk is like a Pair which is like a
 // List; you won't usually need to worry about the differences.
-type Thunk func(I) *Pair
+type Thunk struct {
+	id uint64
+	f  thunkFunc
+}
+
+var thunkId uint64
+
+func nextId() uint64 {
+	thunkId++
+	return thunkId
+}
 
 // Empty is the empty Thunk, that is, a Thunk that returns nil. Lists end
 // with it.
 var Empty *Thunk = func() *Thunk {
-	var v Thunk = func(I) *Pair { return nil }
-	return &v
+	var v thunkFunc = func(I) *Pair { return nil }
+	return &Thunk{nextId(), v}
 }()
+
+var memo bool
+
+// Starts memoizing thunk evaluations. By default memoization is on.
+func StartMemo() {
+	memo = true
+}
+
+// Stops memoizing thunk evaluations. By default memoization is on.
+func StopMemo() {
+	memo = false
+}
+
+// Resets the current memoization table. May be useful when it gets too populated
+// with values you won't use anymore.
+func ResetMemo() {
+	memoTable = make(map[uint64]*Pair)
+}
+
+var memoTable map[uint64]*Pair
 
 func force(thunk *Thunk, ctx I) *Pair {
 	if thunk == nil {
 		return nil
 	}
-	return (*thunk)(ctx)
+	if memo {
+		if v, ok := memoTable[(*thunk).id]; ok {
+			//fmt.Printf("Yay! %v %v\n", (*thunk).id, v)
+			return v
+		} else {
+			ret := (*thunk).f(ctx)
+			//fmt.Printf("Aw... %v %v\n", (*thunk).id, ret)
+			memoTable[(*thunk).id] = ret
+			return ret
+		}
+	}
+	return (*thunk).f(ctx)
 }
 
 func (thunk *Thunk) Head() I {
@@ -52,8 +95,8 @@ func (thunk *Thunk) Tail() *Thunk {
 // to Lisp's `cons` or Haskell's `(:)`.
 // 	list123 := Link(1, Link(2, Link(3, Empty)))
 func Link(head I, tail *Thunk) *Thunk {
-	var ret Thunk = func(I) *Pair { return &Pair{head, tail} }
-	return &ret
+	var ret thunkFunc = func(I) *Pair { return &Pair{head, tail} }
+	return &Thunk{nextId(), ret}
 }
 
 // Performs just like Link, but the tail is doubly delayed. Rarely used,
@@ -73,8 +116,8 @@ func Link(head I, tail *Thunk) *Thunk {
 //	}
 //	fact := makeFact(0)
 func DelayedLink(head I, tail func() *Thunk) *Thunk {
-	var ret Thunk = func(I) *Pair { return &Pair{head, tail()} }
-	return &ret
+	var ret thunkFunc = func(I) *Pair { return &Pair{head, tail()} }
+	return &Thunk{nextId(), ret}
 }
 
 // Helper function that Links all its arguments. You can easily make a list
@@ -114,7 +157,7 @@ func (thunk *Thunk) ToSlice() [](I) {
 
 // Makes a single List by appending one to another.
 func (thunk *Thunk) Append(other *Thunk) *Thunk {
-	var ret Thunk = func(_ I) *Pair {
+	var ret thunkFunc = func(_ I) *Pair {
 		pair := force(thunk, nil)
 		if pair != nil {
 			return &Pair{pair.head, pair.tail.Append(other)}
@@ -123,7 +166,7 @@ func (thunk *Thunk) Append(other *Thunk) *Thunk {
 		}
 		return nil
 	}
-	return &ret
+	return &Thunk{nextId(), ret}
 }
 
 // A handy way of iterating through a List is by calling Iter()
@@ -225,7 +268,7 @@ func (thunk *Thunk) At(n uint) (ret I) {
 
 // Takes the first n elements of a list. Mostly needed for infinite lists.
 func (thunk *Thunk) Take(n uint) *Thunk {
-	var ret Thunk = func(_ I) *Pair {
+	var ret thunkFunc = func(_ I) *Pair {
 		if n > 0 {
 			pair := force(thunk, nil)
 			if pair != nil {
@@ -234,12 +277,12 @@ func (thunk *Thunk) Take(n uint) *Thunk {
 		}
 		return nil
 	}
-	return &ret
+	return &Thunk{nextId(), ret}
 }
 
 // Drops the first n elements of a list and returns the rest.
 func (thunk *Thunk) Drop(n uint) *Thunk {
-	var ret Thunk
+	var ret thunkFunc
 	ret = func(_ I) *Pair {
 		pair := force(thunk, nil)
 		if pair != nil {
@@ -252,13 +295,13 @@ func (thunk *Thunk) Drop(n uint) *Thunk {
 		}
 		return nil
 	}
-	return &ret
+	return &Thunk{nextId(), ret}
 }
 
 // Applies a function to each element of some lists. The function must
 // handle any number of elements. It ends when any of the lists ends.
 func MapN(f func(...I) I, thunks ...*Thunk) *Thunk {
-	var ret Thunk = func(I) *Pair {
+	var ret thunkFunc = func(I) *Pair {
 		l := len(thunks)
 		heads := make([](I), l)
 		tails := make([]*Thunk, l)
@@ -272,7 +315,7 @@ func MapN(f func(...I) I, thunks ...*Thunk) *Thunk {
 		}
 		return &Pair{f(heads...), MapN(f, tails...)}
 	}
-	return &ret
+	return &Thunk{nextId(), ret}
 }
 
 // Applies a function to each element of a list.
@@ -339,7 +382,7 @@ func (thunk *Thunk) Reduce(f func(I, I) I, initial I) I {
 // The testing function must take an element from each list to which
 // it is applied.
 func FilterN(f func(...I) bool, thunks ...*Thunk) *Thunk {
-	var ret Thunk = func(I) *Pair {
+	var ret thunkFunc = func(I) *Pair {
 		l := len(thunks)
 		heads := make([](I), l)
 		tails := make([]*Thunk, l)
@@ -355,9 +398,9 @@ func FilterN(f func(...I) bool, thunks ...*Thunk) *Thunk {
 		if f(heads...) {
 			return &Pair{L(heads...), tail}
 		}
-		return (*tail)(tail)
+		return force(tail, nil)
 	}
-	return &ret
+	return &Thunk{nextId(), ret}
 }
 
 // Returns the lists of the elements of the list that pass a testing
@@ -372,7 +415,7 @@ func (thunk *Thunk) Filter(f func(I) bool) *Thunk {
 		})
 	*/
 
-	var ret Thunk = func(I) *Pair {
+	var ret thunkFunc = func(I) *Pair {
 		pair := force(thunk, nil)
 		if pair == nil {
 			return nil
@@ -381,9 +424,10 @@ func (thunk *Thunk) Filter(f func(I) bool) *Thunk {
 		if f(pair.head) {
 			return &Pair{pair.head, tail}
 		}
-		return (*tail)(tail)
+		//return (*tail)(tail)
+		return force(tail, nil)
 	}
-	return &ret
+	return &Thunk{nextId(), ret}
 }
 
 // Tests if any of the elements of the list passes a testing
@@ -503,20 +547,20 @@ func (thunk *Thunk) Min() I {
 
 // Lists the first elements of the list that pass a filtering function.
 func (thunk *Thunk) TakeWhile(f func(I) bool) *Thunk {
-	var ret Thunk = func(_ I) *Pair {
+	var ret thunkFunc = func(_ I) *Pair {
 		pair := force(thunk, nil)
 		if pair != nil && f(pair.head) {
 			return &Pair{pair.head, pair.tail.TakeWhile(f)}
 		}
 		return nil
 	}
-	return &ret
+	return &Thunk{nextId(), ret}
 }
 
 // Lists the elements of the list after the first one that doesn't pass a 
 // filtering function.
 func (thunk *Thunk) DropWhile(f func(I) bool) *Thunk {
-	var ret Thunk
+	var ret thunkFunc
 	ret = func(_ I) *Pair {
 		pair := force(thunk, nil)
 		if pair != nil && f(pair.head) {
@@ -525,7 +569,7 @@ func (thunk *Thunk) DropWhile(f func(I) bool) *Thunk {
 		}
 		return pair
 	}
-	return &ret
+	return &Thunk{nextId(), ret}
 }
 
 // Takes some lists and returns a list with slices of one element of each list.
@@ -546,7 +590,7 @@ func (thunk *Thunk) Zip(other *Thunk) *Thunk {
 // 	L(L(1, 2), L(3, 4)).Flatten() // L(1, 2, 3, 4)
 func (thunk *Thunk) Flatten() *Thunk {
 	// Can do better.
-	var ret Thunk = func(_ I) *Pair {
+	var ret thunkFunc = func(_ I) *Pair {
 		pair := force(thunk, nil)
 		if pair != nil {
 			pair2 := force(pair.head.(*Thunk), nil)
@@ -555,19 +599,19 @@ func (thunk *Thunk) Flatten() *Thunk {
 		}
 		return nil
 	}
-	return &ret
+	return &Thunk{nextId(), ret}
 	/*return thunk.Reduce(func(acc, x I) I {
 		return acc.(*Thunk).Append(x.(*Thunk))
 	}, L()).(*Thunk)*/
 }
 
 func (thunk *Thunk) Reverse() *Thunk {
-	var ret Thunk = func(_ I) *Pair {
+	var ret thunkFunc = func(_ I) *Pair {
 		return force(thunk.Reduce(func(acc, x I) I {
 			return Link(x, acc.(*Thunk))
 		}, L()).(*Thunk), nil)
 	}
-	return &ret
+	return &Thunk{nextId(), ret}
 }
 
 func (thunk *Thunk) Last() I {
@@ -582,16 +626,21 @@ func (thunk *Thunk) Last() I {
 //		return x.(int) + 1
 //	})
 func Updating(initial I, f func(I) I) *Thunk {
-	var tail Thunk
+	var tail thunkFunc
 	tail = func(ctx I) *Pair {
 		h := f(ctx)
-		var t Thunk = func(ctx I) *Pair { return force(&tail, h) }
-		return &Pair{h, &t}
+		var t thunkFunc = func(ctx I) *Pair { return force(&Thunk{nextId(), tail}, h) }
+		return &Pair{h, &Thunk{nextId(), t}}
 	}
-	var ret Thunk
+	var ret thunkFunc
 	ret = func(_ I) *Pair {
-		var t Thunk = func(ctx I) *Pair { return force(&tail, initial) }
-		return &Pair{initial, &t}
+		var t thunkFunc = func(ctx I) *Pair { return force(&Thunk{nextId(), tail}, initial) }
+		return &Pair{initial, &Thunk{nextId(), t}}
 	}
-	return &ret
+	return &Thunk{nextId(), ret}
+}
+
+func init() {
+	memo = true
+	memoTable = make(map[uint64]*Pair)
 }

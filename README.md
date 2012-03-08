@@ -47,6 +47,6 @@ See documentation and tests for detailed usage.
 
 ## To Do
 	
-* Memoization.
+* Better memoization.
 * Ability to skip lists and work directly with slices, although lack of generics would make it clumsy anyway.
 * Some optimizations.
