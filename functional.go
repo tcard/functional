@@ -1,6 +1,5 @@
 // Package functional implements a functional programming library including
 // a lazy list implementation and some of the most usual functions.
-
 package functional
 
 import (
@@ -12,12 +11,10 @@ import (
 // Type I is the type of the element of a Pair. It is defined as interface{},
 // so you can throw anything inside of a Pair. When you take elements back to
 // non-functional code you will probably need to type-assert it.
-
 type I interface{}
 
 // The Pair type is the basic element of Lists. Composed of an element (the head)
 // and a pointer to the Thunk which returns the next Pair of the List (the tail).
-
 type Pair struct {
 	Head I
 	Tail *Thunk
@@ -28,31 +25,26 @@ type Pair struct {
 // be used as a previous value for generating the next Pair, but usually
 // it won't take effect. In practice, Thunk is like a Pair which is like a
 // List; you won't usually need to worry about the differences.
-
 type Thunk func() *Pair
 
 // Empty is the empty Thunk, that is, a Thunk that returns nil. Lists end
 // with it.
-
 var Empty *Thunk
 
 var memo bool
 
 // Starts memoizing thunk evaluations. By default memoization is on.
-
 func StartMemo() {
 	memo = true
 }
 
 // Stops memoizing thunk evaluations. By default memoization is on.
-
 func StopMemo() {
 	memo = false
 }
 
 // Resets the current memoization table. May be useful when it gets too populated
 // with values you won't use anymore.
-
 func ResetMemo() {
 	memoTable = make(map[uintptr]*Pair)
 }
@@ -87,7 +79,6 @@ func (thunk *Thunk) Tail() *Thunk {
 // Takes a head element and a tail Thunk and makes a Thunk with them.
 // Similar to Lisp's `cons` or Haskell's `(:)`.
 // 	list123 := Link(1, Link(2, Link(3, Empty)))
-
 func Link(head I, tail *Thunk) *Thunk {
 	var ret Thunk = func() *Pair { return &Pair{head, tail} }
 	return &ret
@@ -109,7 +100,6 @@ func Link(head I, tail *Thunk) *Thunk {
 //		return DelayedLink(factN(n), func() *Thunk { return makeFact(n + 1) })
 //	}
 //	fact := makeFact(0)
-
 func DelayedLink(head I, tail func() *Thunk) *Thunk {
 	var ret Thunk = func() *Pair { return &Pair{head, tail()} }
 	return &ret
@@ -117,7 +107,6 @@ func DelayedLink(head I, tail func() *Thunk) *Thunk {
 
 // Helper function that Links all its arguments. You can easily make a list
 // from a slice with it: List(slice...)
-
 func List(items ...I) *Thunk {
 	if len(items) >= 1 {
 		return Link(items[0], List(items[1:]...))
@@ -126,7 +115,6 @@ func List(items ...I) *Thunk {
 }
 
 // Shortcut for List.
-
 func L(items ...I) *Thunk {
 	return List(items...)
 }
@@ -145,7 +133,6 @@ func SliceToList(items I) (ret *Thunk) {
 }
 
 // Makes a slice from a List.
-
 func (thunk *Thunk) ToSlice() [](I) {
 	ret := make([]I, thunk.Length())
 	pair := force(thunk)
@@ -157,7 +144,6 @@ func (thunk *Thunk) ToSlice() [](I) {
 }
 
 // Makes a single List by appending one to another.
-
 func (thunk *Thunk) Append(other *Thunk) *Thunk {
 	var ret Thunk = func() *Pair {
 		pair := force(thunk)
@@ -173,7 +159,6 @@ func (thunk *Thunk) Append(other *Thunk) *Thunk {
 
 // A handy way of iterating through a List is by calling Iter()
 // in a for-range loop.
-
 func (thunk *Thunk) Iter() chan I {
 	ch := make(chan I)
 	go func() {
@@ -212,7 +197,6 @@ func (thunk *Thunk) String() (ret string) {
 }
 
 // Tests for equality between two lists.
-
 func (thunk *Thunk) Equals(other *Thunk) bool {
 	for {
 		pair := force(thunk)
@@ -256,7 +240,6 @@ func (thunk *Thunk) Length() (ret int) {
 
 // Retrieves the element at the n-th position on the list. If there is
 // no such element, err is set.
-
 func (thunk *Thunk) At(n uint) (ret I) {
 	var pair *Pair
 	for i := uint(0); i <= n; i++ {
@@ -272,7 +255,6 @@ func (thunk *Thunk) At(n uint) (ret I) {
 }
 
 // Takes the first n elements of a list. Mostly needed for infinite lists.
-
 func (thunk *Thunk) Take(n uint) *Thunk {
 	var ret Thunk = func() *Pair {
 		if n > 0 {
@@ -287,7 +269,6 @@ func (thunk *Thunk) Take(n uint) *Thunk {
 }
 
 // Drops the first n elements of a list and returns the rest.
-
 func (thunk *Thunk) Drop(n uint) *Thunk {
 	var ret Thunk
 	ret = func() *Pair {
@@ -307,7 +288,6 @@ func (thunk *Thunk) Drop(n uint) *Thunk {
 
 // Applies a function to each element of some lists. The function must
 // handle any number of elements. It ends when any of the lists ends.
-
 func MapN(f func(...I) I, thunks ...*Thunk) *Thunk {
 	var ret Thunk = func() *Pair {
 		l := len(thunks)
@@ -350,7 +330,6 @@ func (thunk *Thunk) Map(f func(I) I) *Thunk {
 //	}
 //	
 // 	sumInts(L(1, 2), L(3, 4)) // == 10 
-
 func ReduceN(f func(I, ...I) I, acc I, thunks ...*Thunk) I {
 	l := len(thunks)
 	heads := make([](I), l)
@@ -381,7 +360,6 @@ func ReduceN(f func(I, ...I) I, acc I, thunks ...*Thunk) I {
 //	}
 //	
 // 	L(1,2,3,4).sumInts() // == 10 
-
 func (thunk *Thunk) Reduce(f func(I, I) I, initial I) I {
 	return ReduceN(func(acc I, xs ...I) I {
 		return f(acc, xs[0])
@@ -391,7 +369,6 @@ func (thunk *Thunk) Reduce(f func(I, I) I, initial I) I {
 // Returns the list of lists of the elements which pass a testing function.
 // The testing function must take an element from each list to which
 // it is applied.
-
 func FilterN(f func(...I) bool, thunks ...*Thunk) *Thunk {
 	var ret Thunk = func() *Pair {
 		l := len(thunks)
@@ -416,7 +393,6 @@ func FilterN(f func(...I) bool, thunks ...*Thunk) *Thunk {
 
 // Returns the lists of the elements of the list that pass a testing
 // function.
-
 func (thunk *Thunk) Filter(f func(I) bool) *Thunk {
 	/*
 		// Slow, but left here for fanciness.
@@ -443,7 +419,6 @@ func (thunk *Thunk) Filter(f func(I) bool) *Thunk {
 
 // Tests if any of the elements of the list passes a testing
 // function.
-
 func (thunk *Thunk) Any(f func(I) bool) bool {
 	pair := force(thunk)
 	if pair != nil {
@@ -472,7 +447,6 @@ func (thunk *Thunk) All(f func(I) bool) bool {
 }
 
 // Tests if a list contains an element.
-
 func (thunk *Thunk) Has(x I) bool {
 	return thunk.Any(func(y I) bool {
 		return reflect.DeepEqual(x, y)
@@ -481,7 +455,6 @@ func (thunk *Thunk) Has(x I) bool {
 
 // Retrieves the maximum element of a list. Obviously, the list must be
 // composed of ordered elements (ints, floats or strings).
-
 func (thunk *Thunk) Max() I {
 	return thunk.Reduce(func(acc, x I) I {
 		accV := reflect.ValueOf(acc)
@@ -522,7 +495,6 @@ func (thunk *Thunk) Max() I {
 
 // Retrieves the minimum element of a list. Obviously, the list must be
 // composed of ordered elements (ints, floats or strings).
-
 func (thunk *Thunk) Min() I {
 	return thunk.Reduce(func(acc, x I) I {
 		accV := reflect.ValueOf(acc)
@@ -562,7 +534,6 @@ func (thunk *Thunk) Min() I {
 }
 
 // Lists the first elements of the list that pass a filtering function.
-
 func (thunk *Thunk) TakeWhile(f func(I) bool) *Thunk {
 	var ret Thunk = func() *Pair {
 		pair := force(thunk)
@@ -576,7 +547,6 @@ func (thunk *Thunk) TakeWhile(f func(I) bool) *Thunk {
 
 // Lists the elements of the list after the first one that doesn't pass a 
 // filtering function.
-
 func (thunk *Thunk) DropWhile(f func(I) bool) *Thunk {
 	var ret Thunk
 	ret = func() *Pair {
@@ -592,7 +562,6 @@ func (thunk *Thunk) DropWhile(f func(I) bool) *Thunk {
 
 // Takes some lists and returns a list with slices of one element of each list.
 //	ZipN(L(1, 2, 3), L(4, 5, 6)) // L([1 4], [2 5], [3 6])
-
 func ZipN(thunks ...*Thunk) *Thunk {
 	return MapN(func(xs ...I) I {
 		return SliceToList(xs)
@@ -601,14 +570,12 @@ func ZipN(thunks ...*Thunk) *Thunk {
 
 // Returns a list with slices of one element of each list.
 //	L(1, 2, 3).Zip(L(4, 5, 6)) // L([1 4], [2 5], [3 6])
-
 func (thunk *Thunk) Zip(other *Thunk) *Thunk {
 	return ZipN(thunk, other)
 }
 
 // Converts a list of lists and makes a single list.
 // 	L(L(1, 2), L(3, 4)).Flatten() // L(1, 2, 3, 4)
-
 func (thunk *Thunk) Flatten() *Thunk {
 	// Can do better.
 	var ret Thunk = func() *Pair {
@@ -646,7 +613,6 @@ func (thunk *Thunk) Last() I {
 //	naturals := Updating(0, func(x I) I {
 //		return x.(int) + 1
 //	})
-
 func Updating(initial I, f func(I) I) *Thunk {
 	var ret Thunk = func() *Pair {
 		return &Pair{initial, Updating(f(initial), f)}
