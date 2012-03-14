@@ -4,9 +4,9 @@
 package functional
 
 import (
-	//	"crypto/md5"
 	"fmt"
 	"reflect"
+	"unsafe"
 )
 
 // Type I is the type of the element of a Pair. It is defined as interface{},
@@ -64,7 +64,7 @@ func force(thunk *Thunk) *Pair {
 		return nil
 	}
 	if memo {
-		ptr := reflect.ValueOf(thunk).Pointer()
+		ptr := uintptr(unsafe.Pointer(thunk))
 		if v, ok := memoTable[ptr]; ok {
 			return v
 		} else {
