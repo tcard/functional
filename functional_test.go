@@ -341,7 +341,6 @@ func usualFibo(n int) int {
 
 func BenchmarkIterSlice(b *testing.B) {
 	b.StopTimer()
-	ResetMemo()
 	s := []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
 		11, 12, 13, 14, 15, 16, 17, 18, 19, 20}
 	b.StartTimer()
@@ -353,7 +352,6 @@ func BenchmarkIterSlice(b *testing.B) {
 
 func BenchmarkIterList(b *testing.B) {
 	b.StopTimer()
-	ResetMemo()
 	l := L(1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
 		11, 12, 13, 14, 15, 16, 17, 18, 19, 20)
 	b.StartTimer()
@@ -378,7 +376,6 @@ func BenchmarkIterListNoMemo(b *testing.B) {
 
 func BenchmarkMapLoop(b *testing.B) {
 	b.StopTimer()
-	ResetMemo()
 	s := []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
 		11, 12, 13, 14, 15, 16, 17, 18, 19, 20}
 	double := func(n int) int {
@@ -395,7 +392,6 @@ func BenchmarkMapLoop(b *testing.B) {
 
 func BenchmarkMapList(b *testing.B) {
 	b.StopTimer()
-	ResetMemo()
 	l := L(1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
 		11, 12, 13, 14, 15, 16, 17, 18, 19, 20)
 	double := func(n I) I {
@@ -424,7 +420,6 @@ func BenchmarkMapListNoMemo(b *testing.B) {
 
 func BenchmarkAppendSlices(b *testing.B) {
 	b.StopTimer()
-	ResetMemo()
 	s := []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
 		11, 12, 13, 14, 15, 16, 17, 18, 19, 20}
 	b.StartTimer()
@@ -434,9 +429,6 @@ func BenchmarkAppendSlices(b *testing.B) {
 }
 
 func BenchmarkAppendLists(b *testing.B) {
-	b.StopTimer()
-	ResetMemo()
-	b.StartTimer()
 	l := L(1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
 		11, 12, 13, 14, 15, 16, 17, 18, 19, 20)
 	b.StartTimer()
@@ -446,6 +438,7 @@ func BenchmarkAppendLists(b *testing.B) {
 }
 
 func BenchmarkAppendLsNoMemo(b *testing.B) {
+	b.StopTimer()
 	StopMemo()
 	l := L(1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
 		11, 12, 13, 14, 15, 16, 17, 18, 19, 20)
@@ -457,18 +450,12 @@ func BenchmarkAppendLsNoMemo(b *testing.B) {
 }
 
 func BenchmarkUsualFibo(b *testing.B) {
-	b.StopTimer()
-	ResetMemo()
-	b.StartTimer()
 	for i := 0; i < b.N; i++ {
 		usualFibo(30)
 	}
 }
 
 func BenchmarkFiboStream(b *testing.B) {
-	b.StopTimer()
-	ResetMemo()
-	b.StartTimer()
 	for i := 0; i < b.N; i++ {
 		_ = fibo.At(30)
 	}
@@ -477,6 +464,15 @@ func BenchmarkFiboStream(b *testing.B) {
 func BenchmarkFiboStrNoMemo(b *testing.B) {
 	b.StopTimer()
 	StopMemo()
+	fibo = Link(1, DelayedLink(1, func() *Thunk {
+		return MapN(func(xs ...I) I {
+			ret := 0
+			for _, v := range xs {
+				ret += v.(int)
+			}
+			return ret
+		}, fibo, fibo.Tail())
+	}))
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
 		_ = fibo.At(30)

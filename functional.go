@@ -19,20 +19,15 @@ type Pair struct {
 	Tail *Thunk
 }
 
-// A Thunk is a delayed Pair. It is an ID and a function that, when called, 
+// A Thunk is a delayed Pair. It is a function that, when called, 
 // returns or generates the underlying pair. In practice, Thunk is like a Pair 
 // which is like a List; you won't usually need to worry about the differences.
 // Use MakeThunk to provide your own generator function.
-type Thunk struct {
-	id uint
-	f  func() *Pair
-}
-
-var nextId uint
+type Thunk func() *Pair
 
 func MakeThunk(f func() *Pair) *Thunk {
-	nextId++
-	return &Thunk{nextId, f}
+	var ret Thunk = f
+	return &ret
 }
 
 // Empty is the empty Thunk, that is, a Thunk that returns nil. Lists end
@@ -40,7 +35,6 @@ func MakeThunk(f func() *Pair) *Thunk {
 var Empty *Thunk
 
 var memo bool
-var memoTable map[uint]*Pair
 
 // Starts memoizing thunk evaluations. By default memoization is on.
 func StartMemo() {
@@ -52,26 +46,17 @@ func StopMemo() {
 	memo = false
 }
 
-// Resets the current memoization table. May be useful when it gets too populated
-// with values you won't use anymore.
-func ResetMemo() {
-	memoTable = make(map[uint]*Pair)
-}
-
 func force(thunk *Thunk) *Pair {
 	if thunk == nil {
 		return nil
 	}
+	pair := (*thunk)()
 	if memo {
-		if v, ok := memoTable[(*thunk).id]; ok {
-			return v
-		} else {
-			ret := (*thunk).f()
-			memoTable[(*thunk).id] = ret
-			return ret
-		}
+		*thunk = *MakeThunk(func() *Pair {
+			return pair
+		})
 	}
-	return (*thunk).f()
+	return pair
 }
 
 func (thunk *Thunk) Head() I {
@@ -616,8 +601,6 @@ func Updating(initial I, f func(I) I) *Thunk {
 }
 
 func init() {
-	nextId = 0
 	Empty = MakeThunk(func() *Pair { return nil })
 	memo = true
-	memoTable = make(map[uint]*Pair)
 }
