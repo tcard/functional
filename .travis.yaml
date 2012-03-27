@@ -1,0 +1,16 @@
+# Copied from github.com/peterbourgon/diskv
+
+language: erlang # wither art thou, Go?
+
+install:
+ - mkdir -p $HOME/go || true
+ - export GOROOT=$HOME/go
+ - hg clone -r weekly https://code.google.com/p/go $GOROOT
+ - cd $GOROOT/src && ./all.bash
+ - mkdir -p $HOME/golang || true
+ - export GOPATH=$HOME/golang
+ - export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
+
+script:
+ - go install functional
+ - go test functional
