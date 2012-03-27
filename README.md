@@ -9,7 +9,10 @@ a lazy list implementation and some of the most usual functions.
 
 	go get github.com/tcard/functional
 
-Tested on Go version weekly.2012-03-04.
+Tested on Go version weekly.2012-03-22.
+
+[![Build Status](https://secure.travis-ci.org/tcard/functional.png)](http://travis-ci.org/tcard/functional)
+
 	
 ## Examples
 

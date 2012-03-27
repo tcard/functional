@@ -3,14 +3,16 @@
 language: erlang # wither art thou, Go?
 
 install:
- - mkdir -p $HOME/go || true
- - export GOROOT=$HOME/go
- - hg clone -r weekly https://code.google.com/p/go $GOROOT
- - cd $GOROOT/src && ./all.bash
- - mkdir -p $HOME/golang || true
- - export GOPATH=$HOME/golang
- - export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
+ - hg clone -r weekly https://code.google.com/p/go $HOME/go
+ - cd $HOME/go/src && ./make.bash
+ - mkdir -p $HOME/src || true
+ - mkdir -p $HOME/bin || true
+ - mkdir -p $HOME/pkg || true
+ - export GOPATH=$HOME
+ - export PATH=$PATH:$HOME/go/bin
+ - ln -s $HOME/builds/tcard/functional $HOME/src/functional
+ - go get -v github.com/tcard/functional
 
 script:
- - go install functional
- - go test functional
+ - cd $HOME/src/functional && go build -v .
+ - cd $HOME/src/functional && go test -v .
