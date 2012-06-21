@@ -315,6 +315,16 @@ func TestUpdating(t *testing.T) {
 	}
 }
 
+func TestCurry(t *testing.T) {
+	add := func(a, b int) int {
+		return a + b
+	}
+	addTwo := Curry(add)(2).(F)
+	if add(3, 2) != addTwo(3) {
+		t.Errorf("%v", addTwo(3))
+	}
+}
+
 var fibo *Thunk
 
 func TestFibo(t *testing.T) {

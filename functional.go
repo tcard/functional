@@ -12,6 +12,9 @@ import (
 // non-functional code you will probably need to type-assert it.
 type I interface{}
 
+// A generic function type returned by Curry.
+type F func(...I) I
+
 // The Pair type is the basic element of Lists. Composed of an element (the head)
 // and a pointer to the Thunk which returns the next Pair of the List (the tail).
 type Pair struct {
@@ -598,6 +601,51 @@ func Updating(initial I, f func(I) I) *Thunk {
 	return MakeThunk(func() *Pair {
 		return &Pair{initial, Updating(f(initial), f)}
 	})
+}
+
+// Currying is a way of thinking about multiparameter functions
+// not as taking a tuple of values, but as taking a sole parameter
+// and returning a function that takes another parameter and so on.
+// So f(x, y) = [something] becomes f(x) = λ(y) = [something] and
+// is called like f(x)(y). Note that you should call curried functions
+// by type-asserting the return values to F.
+// 	Curry(math.Max)(2.0).(F)(3.0) == math.Max(2, 3)
+//	
+//	add := func(a, b int) int {
+//		return a + b
+//	}
+//	addTwo := Curry(add)(2).(F)
+// Also note that this won't work with variadic functions; Curry(func(...T) T)
+// is the same as func(...T) but with a I return type.
+func Curry(f I) F {
+	vf := reflect.ValueOf(f)
+
+	var ret F
+	ret = func(xs ...I) I {
+		values := make([]reflect.Value, len(xs))
+		for k, v := range xs {
+			values[k] = reflect.ValueOf(v)
+		}
+
+		ch := make(chan I)
+		go func() {
+			defer func() {
+				if r := recover(); r == "reflect: Call with too few input arguments" {
+					var g F = func(ys ...I) I {
+						return ret(append(xs, ys...)...)
+					}
+					ch <- g
+				} else if r != nil {
+					panic(r)
+				}
+			}()
+			ch <- vf.Call(values)[0].Interface()
+		}()
+
+		return <-ch
+	}
+
+	return ret
 }
 
 func init() {
