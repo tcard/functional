@@ -11,7 +11,7 @@ a lazy list implementation and some of the most usual functions.
 
 Tested on Go 1.
 
-[![Build Status](https://secure.travis-ci.org/tcard/functional.png)](http://travis-ci.org/tcard/functional)
+[![Build Status](http://goci.me/project/image/github.com/tcard/functional)](http://goci.me/project/github.com/tcard/functional)
 	
 ## Examples
 
